@@ -114,21 +114,6 @@ mem_Copy::
 ;*   bc - bytecount of Source
 ;*
 ;***************************************************************************
-mem_CopyMono::
-	inc	b
-	inc	c
-	jr	.skip
-.loop	ld	a,[hl+]
-	ld	[de],a
-	inc	de
-        ld      [de],a
-        inc     de
-.skip	dec	c
-	jr	nz,.loop
-	dec	b
-	jr	nz,.loop
-	ret
-
 
 ;***************************************************************************
 ;*
@@ -139,22 +124,6 @@ mem_CopyMono::
 ;*   hl - pMem
 ;*   bc - bytecount
 ;*
-;***************************************************************************
-mem_SetVRAM::
-	inc	b
-	inc	c
-	jr	.skip
-.loop   push    af
-        di
-        lcd_WaitVRAM
-        pop     af
-        ld      [hl+],a
-        ei
-.skip	dec	c
-	jr	nz,.loop
-	dec	b
-	jr	nz,.loop
-	ret
 
 ;***************************************************************************
 ;*

@@ -266,7 +266,7 @@ call MainLoop
 	ld [levelend],a
 	ld a,3
 	ld [bosspalette],a
-	ld a,$57
+	ld a,$55
 	ld [bosspewtile],a
 	ld a,$c
 	ld [bosshealth],a
@@ -283,7 +283,7 @@ call MainLoop
 	ld [bosspalette],a
 	ld a,$55
 	ld [bosspewtile],a
-	ld a,$8
+	ld a,$f
 	ld [bosshealth],a
 	ld a,$a
 	ld [bossit],a
@@ -298,7 +298,7 @@ call MainLoop
 	ld [bosspalette],a
 	ld a,$57
 	ld [bosspewtile],a
-	ld a,$a
+	ld a,$3
 	ld [bosshealth],a
 	ld a,$a
 	ld [bossit],a
@@ -313,7 +313,7 @@ call MainLoop
 	ld [bosspalette],a
 	ld a,$57
 	ld [bosspewtile],a
-	ld a,$3
+	ld a,$4
 	ld [bosshealth],a
 	ld a,$a
 	ld [bossit],a
@@ -326,9 +326,9 @@ call MainLoop
 	ld [levelend],a
 	ld a,4
 	ld [bosspalette],a
-	ld a,$52
+	ld a,$57
 	ld [bosspewtile],a
-	ld a,$7
+	ld a,$5
 	ld [bosshealth],a
 	ld a,$a
 	ld [bossit],a
@@ -344,7 +344,7 @@ call setupneptune2
 	ld [bosspalette],a
 	ld a,$52
 	ld [bosspewtile],a
-	ld a,$3
+	ld a,$4
 	ld [bosshealth],a
 	ld a,$a
 	ld [bossit],a
@@ -3854,28 +3854,14 @@ gameovercheck::;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	sprite_PutTile ship2,$16
 	sprite_PutTile ship3,$17
 
-	ld a,100
-	.loop1
-	push af
-	call waitvbl
-	pop af
-	dec a
-	cp 0
-	jr nz,.loop1
+call part1
 
 	sprite_PutTile ship0,$18
 	sprite_PutTile ship1,$19
 	sprite_PutTile ship2,$1a
 	sprite_PutTile ship3,$1b
 
-	ld a,100
-	.loop2
-	push af
-	call waitvbl
-	pop af
-	dec a
-	cp 0
-	jr nz,.loop2
+call part1
 	
 	call lcd_Stop
 
@@ -3912,7 +3898,16 @@ gameovercheck::;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	jr z,.explotar
 jp code_begins
 
-
+part1::
+	ld a,100
+.loop2
+push af
+call waitvbl
+pop af
+dec a
+cp 0
+jr nz,.loop2
+ret
 
 
 shipflyingeffect::
@@ -7064,6 +7059,7 @@ setupmars::
 		ld [textwait],a
 		ld a,$ff
 		ld [textendwait],a
+		ld [levelend],a
 		ld hl,marstext
 		ld a, h
 		ld [nexttexth],a
@@ -7140,6 +7136,7 @@ setupjupiter::
 		ld [textwait],a
 		ld a,$ff
 		ld [textendwait],a
+		ld [levelend],a
 		ld hl,jupitertext
 		ld a, h
 		ld [nexttexth],a
@@ -7216,6 +7213,7 @@ setuptitan::
 		ld [textwait],a
 		ld a,$ff
 		ld [textendwait],a
+		ld [levelend],a
 		ld hl,titantext
 		ld a, h
 		ld [nexttexth],a
@@ -7296,6 +7294,7 @@ setupuranus::
 		ld [textwait],a
 		ld a,$ff
 		ld [textendwait],a
+		ld [levelend],a
 		ld hl,uranustext
 		ld a, h
 		ld [nexttexth],a
@@ -7367,6 +7366,7 @@ setupneptune::
 		ld [textwait],a
 		ld a,$ff
 		ld [textendwait],a
+		ld [levelend],a
 		ld hl,neptunetext
 		ld a, h
 		ld [nexttexth],a
@@ -7394,7 +7394,8 @@ ret
 setupneptune2::
 	ld a,10
 	ld [varb],a
-
+	ld a,$ff
+	ld [levelend],a
 	call playlastboss
 	ld a,12
 	ld [fuel],a
