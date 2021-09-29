@@ -135,24 +135,6 @@ mem_Copy::
 ;*   bc - bytecount
 ;*
 ;***************************************************************************
-mem_CopyVRAM::
-
-	inc	b
-	inc	c
-	jr	.skip
-.loop   di
-        lcd_WaitVRAM
-        ld      a,[hl+]
-	ld	[de],a
-        ei
-	inc	de
-.skip	dec	c
-	jr	nz,.loop
-	dec	b
-	jr	nz,.loop
-
-	ret
-
 
 
         ENDC    ;MEMORY_ASM

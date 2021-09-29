@@ -110,8 +110,6 @@ ld	a, IEF_VBLANK
 	call rgb_SetAllBGP
 	ld hl,objpalettes
 	call rgb_SetAllOBP
-	ld a,12
-	ld [health],a
 	ld a,3
 	ld [bombcount],a
 	ld a,104
@@ -130,10 +128,7 @@ ld	a, IEF_VBLANK
 	ld	de, _VRAM	
 	ld	bc, maintilesend - maintiles
 	call	mem_Copy
-	ld	hl, mothership1	; ROM address where we insert  tiles
-	ld	de, $8580
-	ld	bc, mothership1end - mothership1
-	call	mem_Copy
+
 	ld	hl, uitiles	; ROM address where we insert  tiles
 	ld	de, $8930
 	ld	bc, uitilesend - uitiles
@@ -164,23 +159,20 @@ ld	a, IEF_VBLANK
 	call	settiles
 	ld	hl, gamenamemap0	; ROM address where we insert  tiles
 	ld	de, $9C0B
-	ld	bc, 7
+	ld	c, 7
 	call	mem_Copy
-	ld	hl, gamenamemap1	; ROM address where we insert  tiles
 	ld	de, $9C2B
-	ld	bc, 7
+	ld	c, 7
 	call	mem_Copy
-	ld	hl, gamenamemap2	; ROM address where we insert  tiles
 	ld	de, $9C4B
-	ld	bc, 7
+	ld	c, 7
 	call	mem_Copy
 	ld	hl, t_superrocket	; ROM address where we insert  tiles
 	ld	de, $9c67
-	ld	bc, 12
+	ld	c, 12
 	call	mem_Copy
-	ld	hl, t_cjona32u4hm	; ROM address where we insert  tiles
 	ld	de, $9c87
-	ld	bc, 11
+	ld	c, 11
 	call mem_Copy
 
 	ld	a, [rLCDC]
@@ -189,6 +181,20 @@ ld	a, IEF_VBLANK
 
 	call clearspriteram
 
+
+	ld a,$ff
+	ld hl,$ff30
+	ld bc,4
+	call mem_Set
+	ld a,$00
+	ld bc,4
+	call mem_Set
+	ld a,$ff
+	ld bc,4
+	call mem_Set
+	ld a,$00
+	ld bc,4
+	call mem_Set
 
 
 .titlescreenloop
@@ -337,14 +343,19 @@ call levelcomplete
 
 call setupneptune
 call MainLoop
-call setupneptune2
+	ld a,10
+	ld [varb],a
 	ld a,$ff
 	ld [levelend],a
+	call playlastboss
+	ld a,12
+	ld [fuel],a
+	ld [health],a
 	ld a,1
 	ld [bosspalette],a
 	ld a,$52
 	ld [bosspewtile],a
-	ld a,$4
+	ld a,$7
 	ld [bosshealth],a
 	ld a,$a
 	ld [bossit],a
@@ -352,7 +363,19 @@ call BossLoop
 call levelcomplete
 
 call ending
-jp code_begins
+call playmaintheme
+.loop
+	call UpdateCH1
+	call UpdateCH2
+	call UpdateCH4
+	call UpdateChannels1
+	ld a,4
+.loop2
+	halt 
+	nop
+	dec a
+	jr nz,.loop2
+jr .loop
 
 pausetxt:: 
 	db $9a,$8b,$9f,$9d,$8f
@@ -374,9 +397,11 @@ jr pause
 	jr .aaaaa
 
 pauseifstart::
+
 	ld a,[jpad]
 	and PADF_START 
 	ret z
+	call sound2
 	ld a,0
 	ld [rSCX],a
 	ld a,10
@@ -475,6 +500,7 @@ BossLoop::
 	call checkhealth
 	call UpdateCH1
 	call UpdateCH2
+
 	call UpdateCH4
 	call UpdateChannels1
 	call updatesmallenemies
@@ -488,7 +514,6 @@ BossLoop::
 	cp $80
 jp	nz,BossLoop
 ret
-
 
 
 updateboss1::
@@ -869,6 +894,7 @@ updateship:
 	ld [pewtimer],a
 ret
 shoot::
+
 	sprite_GetTile	pew1 		;get tile to check if pew1 is available
 	cp 0 ;available?  		;if available a=0
 	jr nz,.askip1 			;not available then skip the first pew obj
@@ -879,7 +905,7 @@ shoot::
 	PutSpriteYAddr	pew1,	a
 	ld a,4
 	ld [pewtimer],a
-	ret
+	jp sound
 	.askip1
 	sprite_GetTile	pew2 		;get tile to check if pew1 is available
 	cp 0 ;available?  		;if available a=0
@@ -891,7 +917,7 @@ shoot::
 	PutSpriteYAddr	pew2,	a
 	ld a,4
 	ld [pewtimer],a
-	ret
+	jp sound
 	.askip2
 	sprite_GetTile	pew3 		;get tile to check if pew1 is available
 	cp 0 ;available?  		;if available a=0
@@ -903,7 +929,7 @@ shoot::
 	PutSpriteYAddr	pew3,	a
 	ld a,4
 	ld [pewtimer],a
-	ret
+	jp sound
 bomb::
 	ld a,[bombcount]
 	cp 0
@@ -1293,6 +1319,8 @@ ret
 
 
 explotionanimation::
+	ld a,1
+	ld [noise],a
 	sprite_PutTile var1, $15
 	sprite_PutTile var2, $16
 	sprite_PutTile var3, $17
@@ -1327,6 +1355,8 @@ explotionanimation::
 	sprite_PutTile var3, $1b
 	ret
 explotionanimation2::
+	ld a,1
+	ld [noise],a
 	sprite_PutTile var1, $19
 	sprite_PutTile var2, $1a
 	sprite_PutTile var3, $1b
@@ -2870,6 +2900,8 @@ enemyupdatehealth::
 	ld [enemyhealth],a
 ret	
 explode::
+	ld a,1
+	ld [noise],a
 	sprite_PutTile var0, $14
 	sprite_PutTile var1, $15
 	sprite_PutTile var2, $16
@@ -2881,6 +2913,14 @@ explode::
 	sprite_PutFlags var3,a
 	ld a,3
 	ld [enemyhealth],a
+	ld a,$3a
+	ld [rNR41],a
+	ld a,$a4
+	ld [rNR42],a
+	ld a,$61
+	ld [rNR43],a
+	ld a,$80
+	ld [rNR44],a
 ret
 checkcollision:: ;check if (x1+4,y1+4) is inside (x,y,x+8,y+8)
 
@@ -3225,7 +3265,7 @@ heartitem::
 	.hideobj
 	sprite_PutTile var0,0
 	PutSpriteYAddr var0,0
-	ret 
+	jp sound2
 	.nocollision
 	GetSpriteXAddr var0
 	cp 8
@@ -3253,7 +3293,7 @@ bombitem::
 	.hideobj
 	sprite_PutTile var0,0
 	PutSpriteYAddr var0,0
-	ret 
+	jp sound2
 	.nocollision
 	GetSpriteXAddr var0
 	cp 8
@@ -3281,7 +3321,7 @@ fuelitem::
 	.hideobj
 	sprite_PutTile var0,0
 	PutSpriteYAddr var0,0
-	ret 
+	jp sound2
 	.nocollision
 	GetSpriteXAddr var0
 	cp 8
@@ -3310,7 +3350,7 @@ lifeitem::
 	.hideobj
 	sprite_PutTile var0,0
 	PutSpriteYAddr var0,0
-	ret 
+	jp sound2
 	.nocollision
 	GetSpriteXAddr var0
 	cp 8
@@ -3442,6 +3482,8 @@ levelupdate::
 	jp z, updateenemies.e5u
 ret
 
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;music start;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 freq:
 	db $00
@@ -3461,15 +3503,16 @@ UpdateChannels1::
 	ld a,[NR13]
 	cp a,00
 	jp z,.noch1
-	ld [rNR13],a
+	ld [rNR33],a
 	ld a,[NR14]
-	ld [rNR14],a
-	ld a,$00
-	ld [rNR10],a
-	ld a,$81
-	ld [rNR11],a
-	ld a,$43
-	ld [rNR12],a
+	or %11000000
+	ld [rNR34],a
+	ld a,$80
+	ld [rNR30],a
+	ld a,$df
+	ld [rNR31],a
+	ld a,$63
+	ld [rNR32],a
 	.noch1
 	ld a,[NR23]
 	cp a,00
@@ -3479,26 +3522,22 @@ UpdateChannels1::
 	ld [rNR24],a
 	ld a,$81
 	ld [rNR21],a
-	ld a,$83
+	ld a,$73
 	ld [rNR22],a
 	.noch2
 	ld a,[noise]
 	cp a,00
-	jr z,.noch4
+	ret z
 	ld a,$3a
 	ld [rNR41],a
-	ld a,$f5
+	ld a,$75
 	ld [rNR42],a
 	ld a,$00
 	ld [rNR43],a
 	ld a,$c0
 	ld [rNR44],a
 	ret
-	.noch4
-	ld [rNR41],a
-	ld [rNR42],a
-	ld [rNR43],a
-	ld [rNR44],a
+
 	ret
 	
 	
@@ -3609,7 +3648,14 @@ UpdateCH4::
 	ld h,a
 	ld a,[CH4note2PlayL]
 	ld l,a
+	ld a,[noise]
+	cp 1
+	jr nz,.zkeep
+	dec a
+	jr .zkeep2
+.zkeep
 	ld a,[hl];get note byte for nr13
+.zkeep2
 	ld [noise],a
 	.endch4
 	ld a,[CH4note2PlayH];get addr of next note
@@ -3688,7 +3734,7 @@ settiles:
 	.nl
 		push af  
 		ld bc,20                     
-		call	mem_CopyVRAM
+		call	mem_Copy
 		push hl
 		ld hl,12
 		add hl,de
@@ -3833,6 +3879,14 @@ checkhealth::
 	sprite_PutFlags ship1,%00010100
 	sprite_PutFlags ship2,%00010100
 	sprite_PutFlags ship3,%00010100
+	ld a,$3a
+	ld [rNR41],a
+	ld a,$a1
+	ld [rNR42],a
+	ld a,$3b
+	ld [rNR43],a
+	ld a,$c0
+	ld [rNR44],a
 	ret
 	.nodamage
 	ld a, [previoushealth]
@@ -3848,7 +3902,14 @@ gameovercheck::;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	ld a, [health]
 	cp 0
 	ret nz
-
+	ld a,$3a
+	ld [rNR41],a
+	ld a,$a4
+	ld [rNR42],a
+	ld a,$61
+	ld [rNR43],a
+	ld a,$80
+	ld [rNR44],a
 	sprite_PutTile ship0,$14
 	sprite_PutTile ship1,$15
 	sprite_PutTile ship2,$16
@@ -4018,42 +4079,34 @@ updatetext::
 	dec a
 	ld [textendwait],a
 ret
-
+waitx::
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+	ret
 char::
 	ld a,[chart]
 	cp 0
 	ret z
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+
+	call waitx
 	ld [$9c28],a
 	inc a
 	ld [$9c48],a
@@ -4082,37 +4135,7 @@ charpals::
 	ld a,[cpal]
 	cp 0
 	ret z
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	call waitx
 	push af
 	ld a,$FF
 	ld [$ff4f],a
@@ -4694,6 +4717,59 @@ ending::
 ret
 
 levelcomplete::
+	ld a,$3a
+	ld [rNR41],a
+	ld a,$a4
+	ld [rNR42],a
+	ld a,$61
+	ld [rNR43],a
+	ld a,$80
+	ld [rNR44],a
+	sprite_PutFlags e1o0,4
+	sprite_PutFlags e1o1,4
+	sprite_PutFlags e1o2,4
+	sprite_PutFlags e1o3,4
+	sprite_PutFlags e2o0,4
+	sprite_PutFlags e2o1,4
+	sprite_PutFlags e2o2,4
+	sprite_PutFlags e2o3,4
+	sprite_PutFlags e3o0,4
+	sprite_PutFlags e3o1,4
+	sprite_PutFlags e3o2,4
+	sprite_PutFlags e3o3,4
+
+	sprite_PutTile e1o0,$14
+	sprite_PutTile e1o1,$15
+	sprite_PutTile e1o2,$16
+	sprite_PutTile e1o3,$17
+	
+	sprite_PutTile e2o0,$14
+	sprite_PutTile e2o1,$15
+	sprite_PutTile e2o2,$16
+	sprite_PutTile e2o3,$17
+	
+	sprite_PutTile e4o0,$14
+	sprite_PutTile e4o1,$15
+	sprite_PutTile e4o2,$16
+	sprite_PutTile e4o3,$17
+
+call part1
+
+	sprite_PutTile e1o0,$18
+	sprite_PutTile e1o1,$19
+	sprite_PutTile e1o2,$1a
+	sprite_PutTile e1o3,$1b
+	sprite_PutTile e2o0,$18
+	sprite_PutTile e2o1,$19
+	sprite_PutTile e2o2,$1a
+	sprite_PutTile e2o3,$1b
+	sprite_PutTile e4o0,$18
+	sprite_PutTile e4o1,$19
+	sprite_PutTile e4o2,$1a
+	sprite_PutTile e4o3,$1b
+
+call part1
+
 	ld a,0
 	ld [rSCX],a
 	call lcd_Stop
@@ -6779,7 +6855,24 @@ lastbossloop4::
 	db $00        
 lastbossend4::
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;levelsetups
+shst::
+	PutSpriteYAddr ship0,80
+	PutSpriteXAddr ship0,16
+	PutSpriteXAddr ship1,16
+	PutSpriteXAddr ship2,24
+	PutSpriteXAddr ship3,24
+	ld a,5
+	ld [textwait],a
+	ld a,$ff
+	ld [textendwait],a
+	ld [levelend],a
+	ld a,20
+	ld [itemwait],a
 
+	ld a,12
+	ld [fuel],a
+	ld [health],a
+ret
 setupearthorbit::
 	ld hl,earthorbitpalettes
 	call rgb_SetAllBGP
@@ -6831,16 +6924,8 @@ setupearthorbit::
 	ld a,0
 	ld [scspeed],a
 
-		PutSpriteYAddr ship0,80
-		PutSpriteXAddr ship0,16
-		PutSpriteXAddr ship1,16
-		PutSpriteXAddr ship2,24
-		PutSpriteXAddr ship3,24
+	call shst
 
-		ld a,5
-		ld [textwait],a
-		ld a,$ff
-		ld [textendwait],a
 		ld hl,earthorbittext
 		ld a, h
 		ld [nexttexth],a
@@ -6849,15 +6934,11 @@ setupearthorbit::
 
 	call playearthorbit
 
-	ld a,12
-	ld [fuel],a
-	ld [health],a
 ret
 setupmercury::
 	ld a,0
 	ld [scspeed],a
-	ld hl,earthorbitpalettes
-	call rgb_SetAllBGP
+
 	call lcd_Stop
 	ld a,0
 	ld [rWY],a
@@ -6869,12 +6950,8 @@ setupmercury::
 	call	mem_Copy
 	ld a,$FF
 	ld [$ff4f],a
-	ld [levelend],a
 	ld	hl, mercurycgb	; ROM address where we insert  tiles
 	ld	de, $98a0
-	call	settiles
-	ld	hl, windowcgb	; ROM address where we insert  tiles
-	ld	de, $9c00
 	call	settiles
 	ld a,$00
 	ld [$ff4f],a
@@ -6883,24 +6960,14 @@ setupmercury::
 	ld	hl, mercurymap	; ROM address where we insert  tiles
 	ld	de, $98a0
 	call	settiles
-	ld	hl, windowmap	; ROM address where we insert  tiles
-	ld	de, $9c00
-	call	settiles
 	ld	a, [rLCDC]
 	or	LCDCF_ON
 	ld	[rLCDC], a	; turn LCD back on
 
 	
-		PutSpriteYAddr ship0,80
-		PutSpriteXAddr ship0,16
-		PutSpriteXAddr ship1,16
-		PutSpriteXAddr ship2,24
-		PutSpriteXAddr ship3,24
+call shst
 
-		ld a,5
-		ld [textwait],a
-		ld a,$ff
-		ld [textendwait],a
+
 		ld hl,mercurytext
 		ld a, h
 		ld [nexttexth],a
@@ -6919,18 +6986,13 @@ setupmercury::
 		ld [nextitemh],a
 		ld a, l
 		ld [nextiteml],a
-		ld a,20
-		ld [itemwait],a
+
 	call playmercury
 	ld a,%00001111
 	ld [e1h],a
-	ld a,12
-	ld [fuel],a
-	ld [health],a
 ret
 setupvenus::
-	ld hl,earthorbitpalettes
-	call rgb_SetAllBGP
+
 	call lcd_Stop
 	ld a,0
 	ld [rWY],a
@@ -6946,9 +7008,7 @@ setupvenus::
 	ld	hl, $98a0
 	ld bc, venuscgb-venusmap
 	call	mem_Set
-	ld	hl, windowcgb	; ROM address where we insert  tiles
-	ld	de, $9c00
-	call	settiles
+
 	ld a,$00
 	ld [$ff4f],a
 	ld [invencible],a ; #smort;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;invencible XD
@@ -6957,9 +7017,7 @@ setupvenus::
 	ld	de, $98a0
 	ld bc, venuscgb-venusmap
 	call	mem_Copy
-	ld	hl, windowmap	; ROM address where we insert  tiles
-	ld	de, $9c00
-	call	settiles
+
 	ld	a, [rLCDC]
 	or	LCDCF_ON
 	ld	[rLCDC], a	; turn LCD back on
@@ -6976,22 +7034,11 @@ setupvenus::
 	ld [nextitemh],a
 	ld a, l
 	ld [nextiteml],a
-	ld a,20
-	ld [itemwait],a
+
 
 	
-		
-	PutSpriteYAddr ship0,80
-	PutSpriteXAddr ship0,16
-	PutSpriteXAddr ship1,16
-	PutSpriteXAddr ship2,24
-	PutSpriteXAddr ship3,24
-
-		ld a,5
-		ld [textwait],a
-		ld a,$ff
-		ld [textendwait],a
-		ld [levelend],a
+	call shst		
+ 
 		ld hl,venustext
 		ld a, h
 		ld [nexttexth],a
@@ -7000,15 +7047,11 @@ setupvenus::
 		ld a,2
 		ld [scspeed],a
 	call playvenus
-	ld a,12
-	ld [fuel],a
-	ld [health],a
 ret
 setupmars::
 	ld a,3
 	ld [scspeed],a
-	ld hl,earthorbitpalettes
-	call rgb_SetAllBGP
+
 	call lcd_Stop
 	ld a,0
 	ld [rWY],a
@@ -7024,9 +7067,7 @@ setupmars::
 	ld	hl, $98a0
 	ld bc, venuscgb-venusmap
 	call	mem_Set
-	ld	hl, windowcgb	; ROM address where we insert  tiles
-	ld	de, $9c00
-	call	settiles
+
 	ld a,$00
 	ld [$ff4f],a
 	ld [invencible],a ; #smort;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;invencible XD
@@ -7041,25 +7082,13 @@ setupmars::
 	ld	de, $9966
 	ld bc, mars2mapend - mars2map
 	call	mem_Copy
-	ld	hl, windowmap	; ROM address where we insert  tiles
-	ld	de, $9c00
-	call	settiles
+
 	ld	a, [rLCDC]
 	or	LCDCF_ON
 	ld	[rLCDC], a	; turn LCD back on
 
 	
-		PutSpriteYAddr ship0,80
-		PutSpriteXAddr ship0,16
-		PutSpriteXAddr ship1,16
-		PutSpriteXAddr ship2,24
-		PutSpriteXAddr ship3,24
-
-		ld a,5
-		ld [textwait],a
-		ld a,$ff
-		ld [textendwait],a
-		ld [levelend],a
+call shst
 		ld hl,marstext
 		ld a, h
 		ld [nexttexth],a
@@ -7077,20 +7106,13 @@ setupmars::
 		ld [nextitemh],a
 		ld a, l
 		ld [nextiteml],a
-		ld a,20
-		ld [itemwait],a
 	call playearthorbit
-	ld a,%00001111
-	ld [e1h],a
-	ld a,12
-	ld [fuel],a
-	ld [health],a
+
 ret
 setupjupiter::
 	ld a,0
 	ld [scspeed],a
-	ld hl,earthorbitpalettes
-	call rgb_SetAllBGP
+
 	call lcd_Stop
 	ld a,0
 	ld [rWY],a
@@ -7108,9 +7130,7 @@ setupjupiter::
 	ld	hl, jupitercgb	; ROM address where we insert  tiles
 	ld	de, $98a0
 	call	settiles
-	ld	hl, windowcgb	; ROM address where we insert  tiles
-	ld	de, $9c00
-	call	settiles
+
 	ld a,$00
 	ld [$ff4f],a
 	ld [invencible],a ; #smort;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;invencible XD
@@ -7118,25 +7138,12 @@ setupjupiter::
 	ld	hl, jupitermap	; ROM address where we insert  tiles
 	ld	de, $98a0
 	call	settiles
-	ld	hl, windowmap	; ROM address where we insert  tiles
-	ld	de, $9c00
-	call	settiles
+
 	ld	a, [rLCDC]
 	or	LCDCF_ON
 	ld	[rLCDC], a	; turn LCD back on
 
-	
-		PutSpriteYAddr ship0,80
-		PutSpriteXAddr ship0,16
-		PutSpriteXAddr ship1,16
-		PutSpriteXAddr ship2,24
-		PutSpriteXAddr ship3,24
-
-		ld a,5
-		ld [textwait],a
-		ld a,$ff
-		ld [textendwait],a
-		ld [levelend],a
+	call shst
 		ld hl,jupitertext
 		ld a, h
 		ld [nexttexth],a
@@ -7154,20 +7161,14 @@ setupjupiter::
 		ld [nextitemh],a
 		ld a, l
 		ld [nextiteml],a
-		ld a,20
-		ld [itemwait],a
+
 	call playtitan
-	ld a,%00001111
-	ld [e1h],a
-	ld a,12
-	ld [fuel],a
-	ld [health],a
+
 ret
 setuptitan::
 	ld a,0
 	ld [scspeed],a
-	ld hl,earthorbitpalettes
-	call rgb_SetAllBGP
+
 	call lcd_Stop
 	ld a,0
 	ld [rWY],a
@@ -7185,9 +7186,7 @@ setuptitan::
 	ld	hl, titancgb	; ROM address where we insert  tiles
 	ld	de, $98a0
 	call	settiles
-	ld	hl, windowcgb	; ROM address where we insert  tiles
-	ld	de, $9c00
-	call	settiles
+
 	ld a,$00
 	ld [$ff4f],a
 	ld [invencible],a ; #smort;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;invencible XD
@@ -7195,25 +7194,13 @@ setuptitan::
 	ld	hl, titanmap	; ROM address where we insert  tiles
 	ld	de, $98a0
 	call	settiles
-	ld	hl, windowmap	; ROM address where we insert  tiles
-	ld	de, $9c00
-	call	settiles
+
 	ld	a, [rLCDC]
 	or	LCDCF_ON
 	ld	[rLCDC], a	; turn LCD back on
 
-	
-		PutSpriteYAddr ship0,80
-		PutSpriteXAddr ship0,16
-		PutSpriteXAddr ship1,16
-		PutSpriteXAddr ship2,24
-		PutSpriteXAddr ship3,24
-
-		ld a,5
-		ld [textwait],a
-		ld a,$ff
-		ld [textendwait],a
-		ld [levelend],a
+	call shst 
+;
 		ld hl,titantext
 		ld a, h
 		ld [nexttexth],a
@@ -7243,8 +7230,7 @@ ret
 setupuranus::
 	ld a,0
 	ld [scspeed],a
-	ld hl,earthorbitpalettes
-	call rgb_SetAllBGP
+
 	call lcd_Stop
 	ld a,0
 	ld [rWY],a
@@ -7266,9 +7252,7 @@ setupuranus::
 	ld	hl, uranusmap	; ROM address where we insert  tiles
 	ld	de, $98a0
 	call	settiles
-	ld	hl, windowcgb	; ROM address where we insert  tiles
-	ld	de, $9c00
-	call	settiles
+
 	ld a,$00
 	ld [$ff4f],a
 	ld [invencible],a ; #smort;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;invencible XD
@@ -7276,25 +7260,13 @@ setupuranus::
 	ld	hl, uranuscgb	; ROM address where we insert  tiles
 	ld	de, $98a0
 	call	settiles
-	ld	hl, windowmap	; ROM address where we insert  tiles
-	ld	de, $9c00
-	call	settiles
+
 	ld	a, [rLCDC]
 	or	LCDCF_ON
 	ld	[rLCDC], a	; turn LCD back on
 
 	
-		PutSpriteYAddr ship0,80
-		PutSpriteXAddr ship0,16
-		PutSpriteXAddr ship1,16
-		PutSpriteXAddr ship2,24
-		PutSpriteXAddr ship3,24
-
-		ld a,5
-		ld [textwait],a
-		ld a,$ff
-		ld [textendwait],a
-		ld [levelend],a
+		call shst
 		ld hl,uranustext
 		ld a, h
 		ld [nexttexth],a
@@ -7312,18 +7284,14 @@ setupuranus::
 		ld [nextitemh],a
 		ld a, l
 		ld [nextiteml],a
-		ld a,20
-		ld [itemwait],a
+	
 	call playmercury
-	ld a,12
-	ld [fuel],a
-	ld [health],a
+
 ret
 setupneptune::
 	ld a,0
 	ld [scspeed],a
-	ld hl,earthorbitpalettes
-	call rgb_SetAllBGP
+
 	call lcd_Stop
 	ld a,0
 	ld [rWY],a
@@ -7338,9 +7306,7 @@ setupneptune::
 	ld	hl, neptunecgb	; ROM address where we insert  tiles
 	ld	de, $98a0
 	call	settiles
-	ld	hl, windowcgb	; ROM address where we insert  tiles
-	ld	de, $9c00
-	call	settiles
+
 	ld a,$00
 	ld [$ff4f],a
 	ld [invencible],a ; #smort;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;invencible XD
@@ -7348,25 +7314,13 @@ setupneptune::
 	ld	hl, neptunemap	; ROM address where we insert  tiles
 	ld	de, $98a0
 	call	settiles
-	ld	hl, windowmap	; ROM address where we insert  tiles
-	ld	de, $9c00
-	call	settiles
+
 	ld	a, [rLCDC]
 	or	LCDCF_ON
 	ld	[rLCDC], a	; turn LCD back on
 
 	
-		PutSpriteYAddr ship0,80
-		PutSpriteXAddr ship0,16
-		PutSpriteXAddr ship1,16
-		PutSpriteXAddr ship2,24
-		PutSpriteXAddr ship3,24
-
-		ld a,5
-		ld [textwait],a
-		ld a,$ff
-		ld [textendwait],a
-		ld [levelend],a
+	call shst
 		ld hl,neptunetext
 		ld a, h
 		ld [nexttexth],a
@@ -7384,25 +7338,12 @@ setupneptune::
 		ld [nextitemh],a
 		ld a, l
 		ld [nextiteml],a
-		ld a,20
-		ld [itemwait],a
+		
 	call playearthorbit
-	ld a,12
-	ld [fuel],a
-	ld [health],a
-ret
-setupneptune2::
-	ld a,10
-	ld [varb],a
-	ld a,$ff
-	ld [levelend],a
-	call playlastboss
-	ld a,12
-	ld [fuel],a
-	ld [health],a
-ret
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;text
 
+ret
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;text
 
 intromap1::
 	DB $9E,$99,$80,$8E,$8F,$9D,$9E,$9C,$99,$A3
@@ -9080,6 +9021,7 @@ mercury::
 
 	db $00,$00,$00,$00,$ff,$80
 mercuryitems::
+venusitems::
 	db $00,$00,$ff
 	db $C6,$62,$ff
 	db $00,$00,$10
@@ -9187,14 +9129,8 @@ venus::
 	db $6c,$05,$05,$42,$30
 
 	db $00,$00,$00,$00,$ff,$80
-venusitems::
-	db $00,$00,$ff
-	db $C6,$62,$ff
-	db $C7,$70,$45
-	db $C7,$40,$45
-	db $C8,$70,$ff
-	db $C9,$70,$ff
-	db $C9,$70,$ff
+
+
 venustext::
 	db $54,$04
 	dw okretletsgo
@@ -9500,9 +9436,6 @@ titantext::
 	db $3d
 	db $00,$00
 	dw blanktxt
-	db $3d
-	db $00,$00
-	dw blanktxt
 	db $ff
 	db $00,$00
 	dw blanktxt
@@ -9512,7 +9445,10 @@ titantext::
 	db $ff
 	db $00,$00
 	dw blanktxt
-	db $4b
+	db $ff
+	db $00,$00
+	dw blanktxt
+	db $ff
 
 	db $56,$06
 	dw mothershiplocated
@@ -9734,7 +9670,7 @@ neptunetext::
 	db $ff
 	db $00,$00
 	dw blanktxt
-	db $3d
+	db $50
 	db $5d,$06
 	dw mothershiplocated
 	db $ff
@@ -9855,7 +9791,29 @@ visitingthisplanet::
 	DB $93,$9D,$80,$80,$80,$80,$80,$80,$9A,$96
 	DB $8B,$98,$8F,$9E
 ;
+sound2::
+	ld a,$70
+	ld [rNR13],a
+	ld a,$c7
+	ld [rNR14],a
+	ld a,$52
+	jr sound.s2
+sound::
+	ld a,$ff
+	ld [rNR13],a
+	ld a,$c6
+	ld [rNR14],a
+	ld a,$52
+.s2
 
+	ld [rNR12],a
+	ld a,$79
+	ld [rNR10],a
+	ld a,$8c
+	ld [rNR11],a
+
+
+ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;music
 
